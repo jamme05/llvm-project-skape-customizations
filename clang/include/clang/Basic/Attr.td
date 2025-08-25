@@ -5223,3 +5223,19 @@ def NonString : InheritableAttr {
   let Subjects = SubjectList<[Var, Field]>;
   let Documentation = [NonStringDocs];
 }
+
+
+// Skape Engine attributes:
+
+def SkapeReflected : InheritableAttr {
+  let Subjects = SubjectList<[Function, NonBitField], ErrorDiag>;
+  let Spellings = [CXX11<"sk", "reflected">];
+  let Documentation = [SkapeReflectedDocs];
+}
+
+def SkapeReflectedDisplayName : InheritableAttr {
+  let Subjects = SubjectList<[Function, NonBitField], ErrorDiag>;
+  let Spellings = [CXX11<"sk", "display_name">];
+  let Args = [StringArgument<"Name">];
+  let Documentation = [SkapeReflectedDisplayNameDocs];
+}

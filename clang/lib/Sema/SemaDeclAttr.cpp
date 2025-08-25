@@ -32,6 +32,7 @@
 #include "clang/Basic/SourceManager.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Lex/Preprocessor.h"
+#include "clang/Reflection/Reflection.h"
 #include "clang/Sema/Attr.h"
 #include "clang/Sema/DeclSpec.h"
 #include "clang/Sema/DelayedDiagnostic.h"
@@ -6958,6 +6959,36 @@ static void handleVTablePointerAuthentication(Sema &S, Decl *D,
       CustomDiscriminationValue));
 }
 
+
+// Start of Skape Attribute handlers.
+
+static void handleSkapeReflection(Sema &S, Decl *D, const ParsedAttr &AL)
+{
+  // TODO: Reflection logic.
+  if (const auto ND = dyn_cast_or_null<NamedDecl>(D))
+    llvm::outs() << "Reflected: " << ND->getName() << "\n";
+
+  D->addAttr(::new (S.Context) SkapeReflectedAttr(S.Context, AL));
+}
+
+static void handleSkapeReflectedDisplayName(Sema &S, Decl *D, const ParsedAttr &AL) {
+  StringRef Str;
+  if (AL.isStandardAttributeSyntax()) {
+    if (AL.getNumArgs() == 1 &&
+      !S.checkStringLiteralArgumentAttr(AL, 0, Str, nullptr)) {
+      // TODO: Error if no parameter
+      return;
+    }
+  }
+
+  if (const auto ND = dyn_cast_or_null<NamedDecl>(D))
+    llvm::outs() << "Reflected: " << ND->getName() << " with display name: " << Str << "\n";
+
+  D->addAttr(::new (S.Context) SkapeReflectedDisplayNameAttr(S.Context, AL, Str));
+}
+
+// End of Skape Attribute handlers.
+
 //===----------------------------------------------------------------------===//
 // Top Level Sema Entry Points
 //===----------------------------------------------------------------------===//
@@ -7881,6 +7912,14 @@ ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D, const ParsedAttr &AL,
 
   case ParsedAttr::AT_VTablePointerAuthentication:
     handleVTablePointerAuthentication(S, D, AL);
+    break;
+
+    // Skape Engine Attributes:
+  case ParsedAttr::AT_SkapeReflected:
+    handleSkapeReflection(S, D, AL);
+    break;
+  case ParsedAttr::AT_SkapeReflectedDisplayName:
+    handleSkapeReflectedDisplayName(S, D, AL);
     break;
   }
 }

@@ -2775,6 +2775,13 @@ void CodeGenModule::SetLLVMFunctionAttributesForDefinition(const Decl *D,
       F->setAlignment(std::max(llvm::Align(2), F->getAlign().valueOrOne()));
   }
 
+  // Start of Skape Engine Attributes
+
+  // if (D->hasAttr< SkapeReflectedAttr >())
+  //   B.addAttribute(llvm::Attribute::)
+
+  // End of Skape Engine Attributes
+
   // In the cross-dso CFI mode with canonical jump tables, we want !type
   // attributes on definitions only.
   if (CodeGenOpts.SanitizeCfiCrossDso &&
