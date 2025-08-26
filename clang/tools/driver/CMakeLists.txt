@@ -63,7 +63,8 @@ clang_target_link_libraries(clang
   clangDriver
   clangFrontend
   clangFrontendTool
-  clangSerialization
+  clangSerialization 
+  clangReflection
   )
 
 if(WIN32 AND NOT CYGWIN)
