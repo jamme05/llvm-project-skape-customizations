@@ -13482,4 +13482,9 @@ def err_acc_device_type_multiple_archs
 // AMDGCN builtins diagnostics
 def err_amdgcn_load_lds_size_invalid_value : Error<"invalid size value">;
 def note_amdgcn_load_lds_size_valid_value : Note<"size must be %select{1, 2, or 4|1, 2, 4, 12 or 16}0">;
+
+// Skape Engine diagnostics
+def err_skape_cant_add_metadata : Error<"unable to add metadata of type %0 to %1. Did you mean to add 'sk::reflected'?">;
+def err_skape_param_function_not_reflected : Error<"trying to add metadata of type %0 to function %1 but it isn't reflected. Did you mean to add 'sk::reflected' to the function?">;
+def warn_skape_explicit_reflection_not_required : Warning<"you're not required to explicitly state that %0 is reflected">;
 } // end of sema component.

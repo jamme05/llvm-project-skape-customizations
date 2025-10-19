@@ -2,15 +2,8 @@
 #ifndef CLANG_REFLECTION_H
 #define CLANG_REFLECTION_H
 
-#include "llvm/ADT/StringRef.h"
-
 #include "clang/Frontend/FrontendPluginRegistry.h"
-#include "clang/AST/AST.h"
 #include "clang/AST/ASTConsumer.h"
-#include "clang/AST/RecursiveASTVisitor.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Sema/Sema.h"
-#include "llvm/Support/raw_ostream.h"
 
 using namespace clang;
 
@@ -20,12 +13,37 @@ namespace clang {
 
 namespace clang
 {
-  struct ReflectionInfo
+  // This is a struct representation of the additional members in SkapeReflectedAttr
+  struct ReflectionInfoExample
   {
-    Decl*       Declaration;
-    std::string DisplayName = {};
-    // TODO: More reflection settings.
+    SmallString<16> DisplayName = {};
+    SmallString<64> Description = {};
   };
-}
+
+  class SkapeReflectedFunctionAttr : public SkapeReflectedAttr {
+  public:
+    // A container of smaller reflection info.
+    struct ParamReflection {
+      // Editor Only
+      enum class Kind : uint8_t {
+        // The parameter will only be used as an input node
+        In,
+        // The parameter will only be used as an output node
+        Out,
+        // The parameter will be both an input and output node
+        InOut,
+      };
+      SmallString<16> DisplayName = {};
+      SmallString<64> Description = {};
+    };
+    
+    SkapeReflectedFunctionAttr( ASTContext& Ctx,
+        const AttributeCommonInfo& CommonInfo )
+      : SkapeReflectedAttr( Ctx, CommonInfo ) {
+    }
+
+    SmallVector<ParamReflection, 4> Params;
+  };
+} // clang::
 
 #endif

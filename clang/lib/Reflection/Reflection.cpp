@@ -1,6 +1,3 @@
-
-#include "clang/Reflection/Reflection.h"
-
 //===- PrintFunctionNames.cpp ---------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -15,32 +12,72 @@
 //===----------------------------------------------------------------------===//
 
 #include "clang/Reflection/Reflection.h"
+#include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/Sema/Sema.h"
 
-namespace {
+namespace clang {
+struct LateParsedTemplate;
+}
 
-class PrintFunctionsConsumer : public ASTConsumer {
+class HandleReflectionConsumer : public ASTConsumer {
   CompilerInstance &Instance;
-  std::set<std::string> ParsedTemplates;
-
 public:
-  PrintFunctionsConsumer(CompilerInstance &Instance,
-                         std::set<std::string> ParsedTemplates)
-      : Instance(Instance), ParsedTemplates(ParsedTemplates) {}
+  HandleReflectionConsumer(CompilerInstance &Instance)
+  : Instance(Instance) {}
 
   bool HandleTopLevelDecl(DeclGroupRef DG) override {
-    for (DeclGroupRef::iterator i = DG.begin(), e = DG.end(); i != e; ++i) {
-      const Decl *D = *i;
-      if (const NamedDecl *ND = dyn_cast<NamedDecl>(D))
-        llvm::errs() << "top-level-decl: \"" << ND->getNameAsString() << "\"\n";
+    for ( Decl *D : DG ) {
+      if (!D->hasAttr<SkapeReflectedAttr>())
+        continue;
+
+      if (const auto TD = dyn_cast_or_null<TagDecl>(D))
+        HandleTagDecl( TD );
+      else if (const auto FD = dyn_cast_or_null<FunctionDecl>(D))
+        HandleFunctionDecl(FD);
     }
 
     return true;
   }
 
-  void HandleTranslationUnit(ASTContext& context) override {
-    if (!Instance.getLangOpts().DelayedTemplateParsing)
-      return;
+  // class/struct/union/enum
+  void HandleTagDecl(const TagDecl* TD) {
+    // At this point we will want to check 
+    llvm::outs() << "Reflected " << TD->getKindName() << " with name: " << TD->getName() << "\n";
+    if (auto DisplayNameAttr = TD->getAttr<SkapeReflectedDisplayNameAttr>())
+      llvm::outs() << "  Display name: " << DisplayNameAttr->getName() << "\n";
+    if (auto DescriptionAttr = TD->getAttr<SkapeReflectedDescriptionAttr>())
+      llvm::outs() << "  Description:  " << DescriptionAttr->getDescription() << "\n";
+    llvm::outs() << "\n";
+  }
 
+  // functions. We also parse the params here
+  void HandleFunctionDecl(FunctionDecl *FD) {
+    llvm::outs() << "Reflected function with name: " << FD->getName() << "\n";
+    if (auto DisplayNameAttr = FD->getAttr<SkapeReflectedDisplayNameAttr>())
+      llvm::outs() << "  Display name: " << DisplayNameAttr->getName() << "\n";
+    if (auto DescriptionAttr = FD->getAttr<SkapeReflectedDescriptionAttr>())
+      llvm::outs() << "  Description:  " << DescriptionAttr->getDescription() << "\n";
+
+    llvm::outs() << "  Params:\n";
+    for (unsigned i = 0; i < FD->getNumParams(); ++i) {
+      auto P = FD->getParamDecl(i);
+      llvm::outs() << "    " << P->getName() << "\n";
+      if (auto DisplayNameAttr = P->getAttr<SkapeReflectedDisplayNameAttr>())
+        llvm::outs() << "      Display name: " << DisplayNameAttr->getName() << "\n";
+      if (auto DescriptionAttr = P->getAttr<SkapeReflectedDescriptionAttr>())
+        llvm::outs() << "      Description:  " << DescriptionAttr->getDescription() << "\n";
+      if (auto KindAttr = P->getAttr<SkapeReflectedParamKindAttr>()) {
+        switch (KindAttr->getParamKind()) {
+        case SkapeReflectedParamKindAttr::Kind::In:    llvm::outs() << "      Kind: In   \n"; break;
+        case SkapeReflectedParamKindAttr::Kind::Out:   llvm::outs() << "      Kind: Out  \n"; break;
+        case SkapeReflectedParamKindAttr::Kind::InOut: llvm::outs() << "      Kind: InOut\n"; break;
+        }
+        
+      }
+    }
+  }
+  
+  void HandleTranslationUnit(ASTContext& context) override {
     // This demonstrates how to force instantiation of some templates in
     // -fdelayed-template-parsing mode. (Note: Doing this unconditionally for
     // all templates is similar to not using -fdelayed-template-parsig in the
@@ -48,75 +85,28 @@ public:
     // The advantage of doing this in HandleTranslationUnit() is that all
     // codegen (when using -add-plugin) is completely finished and this can't
     // affect the compiler output.
-    struct Visitor : public RecursiveASTVisitor<Visitor> {
-      const std::set<std::string> &ParsedTemplates;
-      Visitor(const std::set<std::string> &ParsedTemplates)
-          : ParsedTemplates(ParsedTemplates) {}
-      bool VisitFunctionDecl(FunctionDecl *FD) {
-        if (FD->isLateTemplateParsed() &&
-            ParsedTemplates.count(FD->getNameAsString()))
-          LateParsedDecls.insert(FD);
-        return true;
-      }
-
-      std::set<FunctionDecl*> LateParsedDecls;
-    } v(ParsedTemplates);
-    v.TraverseDecl(context.getTranslationUnitDecl());
-    clang::Sema &sema = Instance.getSema();
-    for (const FunctionDecl *FD : v.LateParsedDecls) {
-      clang::LateParsedTemplate &LPT =
-          *sema.LateParsedTemplateMap.find(FD)->second;
-      sema.LateTemplateParser(sema.OpaqueParser, LPT);
-      llvm::errs() << "late-parsed-decl: \"" << FD->getNameAsString() << "\"\n";
-    }
   }
 };
 
 class PrintFunctionNamesAction : public PluginASTAction {
-  std::set<std::string> ParsedTemplates;
 protected:
+  ActionType getActionType() override {
+    return CmdlineAfterMainAction;
+  }
+  
   std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
                                                  llvm::StringRef) override {
-    return std::make_unique<PrintFunctionsConsumer>(CI, ParsedTemplates);
+    return std::make_unique<HandleReflectionConsumer>(CI);
   }
 
   bool ParseArgs(const CompilerInstance &CI,
                  const std::vector<std::string> &args) override {
-    for (unsigned i = 0, e = args.size(); i != e; ++i) {
-      llvm::errs() << "PrintFunctionNames arg = " << args[i] << "\n";
-
-      // Example error handling.
-      DiagnosticsEngine &D = CI.getDiagnostics();
-      if (args[i] == "-an-error") {
-        unsigned DiagID = D.getCustomDiagID(DiagnosticsEngine::Error,
-                                            "invalid argument '%0'");
-        D.Report(DiagID) << args[i];
-        return false;
-      } else if (args[i] == "-parse-template") {
-        if (i + 1 >= e) {
-          D.Report(D.getCustomDiagID(DiagnosticsEngine::Error,
-                                     "missing -parse-template argument"));
-          return false;
-        }
-        ++i;
-        ParsedTemplates.insert(args[i]);
-      }
-    }
-    if (!args.empty() && args[0] == "help")
-      PrintHelp(llvm::errs());
-
     return true;
-  }
-  void PrintHelp(llvm::raw_ostream& ros) {
-    ros << "Help for PrintFunctionNames plugin goes here\n";
   }
 
 };
 
-std::shared_ptr<FrontendPluginRegistry::Add<PrintFunctionNamesAction>> plugin;
-
+void register_skape_plugin() {
+  static const FrontendPluginRegistry::Add<PrintFunctionNamesAction> p{ "skape-reflection", "Experimental" };
 }
 
-void InitializePlugin() {
-  plugin = std::make_shared<FrontendPluginRegistry::Add<PrintFunctionNamesAction>>("print-fns", "Experimental");
-}

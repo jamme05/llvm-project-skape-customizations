@@ -233,7 +233,11 @@ static int ExecuteCC1Tool(SmallVectorImpl<const char *> &ArgV,
   return 1;
 }
 
+extern void register_skape_plugin();
+
 int clang_main(int Argc, char **Argv, const llvm::ToolContext &ToolContext) {
+  register_skape_plugin();
+  
   noteBottomOfStack();
   llvm::setBugReportMsg("PLEASE submit a bug report to " BUG_REPORT_URL
                         " and include the crash backtrace, preprocessed "
@@ -247,7 +251,7 @@ int clang_main(int Argc, char **Argv, const llvm::ToolContext &ToolContext) {
 
   llvm::BumpPtrAllocator A;
   llvm::StringSaver Saver(A);
-
+  
   const char *ProgName =
       ToolContext.NeedsPrependArg ? ToolContext.PrependArg : ToolContext.Path;
 

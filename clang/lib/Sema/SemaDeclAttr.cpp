@@ -6964,14 +6964,17 @@ static void handleVTablePointerAuthentication(Sema &S, Decl *D,
 
 static void handleSkapeReflection(Sema &S, Decl *D, const ParsedAttr &AL)
 {
-  // TODO: Reflection logic.
-  if (const auto ND = dyn_cast_or_null<NamedDecl>(D))
-    llvm::outs() << "Reflected: " << ND->getName() << "\n";
-
   D->addAttr(::new (S.Context) SkapeReflectedAttr(S.Context, AL));
 }
 
 static void handleSkapeReflectedDisplayName(Sema &S, Decl *D, const ParsedAttr &AL) {
+  if (!D->hasAttr<SkapeReflectedAttr>()) {
+    // Function parameters are allowed to be reflected without the sk::reflected attribute.
+    const auto PVD = dyn_cast_or_null<ParmVarDecl>(D);
+    if (PVD == nullptr)
+      return;
+  }
+
   StringRef Str;
   if (AL.isStandardAttributeSyntax()) {
     if (AL.getNumArgs() == 1 &&
@@ -6981,10 +6984,47 @@ static void handleSkapeReflectedDisplayName(Sema &S, Decl *D, const ParsedAttr &
     }
   }
 
-  if (const auto ND = dyn_cast_or_null<NamedDecl>(D))
-    llvm::outs() << "Reflected: " << ND->getName() << " with display name: " << Str << "\n";
-
   D->addAttr(::new (S.Context) SkapeReflectedDisplayNameAttr(S.Context, AL, Str));
+}
+
+static void handleSkapeReflectedDescription(Sema &S, Decl *D, const ParsedAttr &AL) {
+  if (!D->hasAttr<SkapeReflectedAttr>()) {
+    // Function parameters are allowed to be reflected without the sk::reflected attribute.
+    const auto PVD = dyn_cast_or_null<ParmVarDecl>(D);
+    if (PVD == nullptr)
+      return;
+  }
+
+  StringRef Str;
+  if (AL.isStandardAttributeSyntax()) {
+    if (AL.getNumArgs() == 1 &&
+      !S.checkStringLiteralArgumentAttr(AL, 0, Str, nullptr)) {
+      // TODO: Error if no parameter
+      return;
+    }
+  }
+
+  D->addAttr(::new (S.Context) SkapeReflectedDescriptionAttr(S.Context, AL, Str));
+}
+
+static void handleSkapeReflectedParamKind(Sema &S, Decl *D, const ParsedAttr &AL) {
+  if (dyn_cast_or_null<ParmVarDecl>(D) == nullptr) {
+    return;
+  }
+
+  if (D->hasAttr<SkapeReflectedAttr>()) {
+    // Not required to be explicit. Give a warning?
+  }
+
+  const auto index = llvm::StringSwitch<int>(AL.getAttrName()->getName())
+  .Case("param_in", 0)
+  .Case("param_out", 1)
+  .Case("param_inout", 2)
+  .Default(0);
+  
+  auto A = ::new (S.Context) SkapeReflectedParamKindAttr(S.Context, AL);
+  A->setAttributeSpellingListIndex(index);
+  D->addAttr(A);
 }
 
 // End of Skape Attribute handlers.
@@ -7920,6 +7960,12 @@ ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D, const ParsedAttr &AL,
     break;
   case ParsedAttr::AT_SkapeReflectedDisplayName:
     handleSkapeReflectedDisplayName(S, D, AL);
+    break;
+  case AttributeCommonInfo::AT_SkapeReflectedDescription:
+    handleSkapeReflectedDescription(S, D, AL);
+    break;
+  case AttributeCommonInfo::AT_SkapeReflectedParamKind:
+    handleSkapeReflectedParamKind(S, D, AL);
     break;
   }
 }

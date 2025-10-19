@@ -5228,14 +5228,48 @@ def NonString : InheritableAttr {
 // Skape Engine attributes:
 
 def SkapeReflected : InheritableAttr {
-  let Subjects = SubjectList<[Function, NonBitField], ErrorDiag>;
+  let Subjects = SubjectList<[Var, Function, Field, Tag], ErrorDiag>;
   let Spellings = [CXX11<"sk", "reflected">];
+  let AdditionalMembers = [{
+public:
+  SmallString<16> DisplayName = {};
+  SmallString<64> Description = {};
+  }];
   let Documentation = [SkapeReflectedDocs];
 }
 
 def SkapeReflectedDisplayName : InheritableAttr {
-  let Subjects = SubjectList<[Function, NonBitField], ErrorDiag>;
+  let Subjects = SubjectList<[Var, Function, Field, Tag], ErrorDiag>;
   let Spellings = [CXX11<"sk", "display_name">];
   let Args = [StringArgument<"Name">];
   let Documentation = [SkapeReflectedDisplayNameDocs];
+}
+
+def SkapeReflectedDescription : InheritableAttr {
+  let Subjects = SubjectList<[Var, Function, Field, Tag], ErrorDiag>;
+  let Spellings = [CXX11<"sk", "description">];
+  let Args = [StringArgument<"Description">];
+  let Documentation = [SkapeReflectedDescriptionDocs];
+}
+
+def SkapeReflectedParamKind : InheritableAttr {
+  let Subjects = SubjectList<[ParmVar], ErrorDiag>;
+  let Spellings = [CXX11<"sk", "param_in">, CXX11<"sk", "param_out">,
+                   CXX11<"sk", "param_inout">];
+  let Accessors = [Accessor<"isIn",    [CXX11<"sk", "param_in">]>,
+                   Accessor<"isOut",   [CXX11<"sk", "param_out">]>,
+                   Accessor<"isInOut", [CXX11<"sk", "param_inout">]>];
+  let AdditionalMembers = [{
+    enum class Kind : uint8_t {
+      In,
+      Out,
+      InOut,
+    };
+    Kind getParamKind() const {
+      return isIn () ? Kind::In  :
+             isOut() ? Kind::Out :
+             Kind::InOut;
+    }
+  }];
+  let Documentation = [SkapeReflectedParamKindDesc];
 }
