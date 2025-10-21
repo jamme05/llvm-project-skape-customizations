@@ -5230,11 +5230,6 @@ def NonString : InheritableAttr {
 def SkapeReflected : InheritableAttr {
   let Subjects = SubjectList<[Var, Function, Field, Tag], ErrorDiag>;
   let Spellings = [CXX11<"sk", "reflected">];
-  let AdditionalMembers = [{
-public:
-  SmallString<16> DisplayName = {};
-  SmallString<64> Description = {};
-  }];
   let Documentation = [SkapeReflectedDocs];
 }
 

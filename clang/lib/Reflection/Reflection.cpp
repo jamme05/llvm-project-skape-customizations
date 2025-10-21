@@ -30,17 +30,21 @@ public:
       if (!D->hasAttr<SkapeReflectedAttr>())
         continue;
 
+      // Instance.getASTContext().getUnnamedGlobalConstantDecl(  )
+
       if (const auto TD = dyn_cast_or_null<TagDecl>(D))
-        HandleTagDecl( TD );
-      else if (const auto FD = dyn_cast_or_null<FunctionDecl>(D))
-        HandleFunctionDecl(FD);
+        return HandleTagDecl( TD );
+      if (const auto FD = dyn_cast_or_null<FunctionDecl>(D))
+        return HandleFunctionDecl(FD);
+      if (const auto PVD = dyn_cast_or_null<ParmVarDecl>(D))
+        return ValidateParmVarDecl(PVD);
     }
 
     return true;
   }
 
   // class/struct/union/enum
-  void HandleTagDecl(const TagDecl* TD) {
+  bool HandleTagDecl(const TagDecl* TD) {
     // At this point we will want to check 
     llvm::outs() << "Reflected " << TD->getKindName() << " with name: " << TD->getName() << "\n";
     if (auto DisplayNameAttr = TD->getAttr<SkapeReflectedDisplayNameAttr>())
@@ -48,10 +52,12 @@ public:
     if (auto DescriptionAttr = TD->getAttr<SkapeReflectedDescriptionAttr>())
       llvm::outs() << "  Description:  " << DescriptionAttr->getDescription() << "\n";
     llvm::outs() << "\n";
+    
+    return true;
   }
 
   // functions. We also parse the params here
-  void HandleFunctionDecl(FunctionDecl *FD) {
+  bool HandleFunctionDecl(FunctionDecl *FD) {
     llvm::outs() << "Reflected function with name: " << FD->getName() << "\n";
     if (auto DisplayNameAttr = FD->getAttr<SkapeReflectedDisplayNameAttr>())
       llvm::outs() << "  Display name: " << DisplayNameAttr->getName() << "\n";
@@ -72,9 +78,19 @@ public:
         case SkapeReflectedParamKindAttr::Kind::Out:   llvm::outs() << "      Kind: Out  \n"; break;
         case SkapeReflectedParamKindAttr::Kind::InOut: llvm::outs() << "      Kind: InOut\n"; break;
         }
-        
       }
     }
+
+    return true;
+  }
+
+  bool ValidateParmVarDecl( const ParmVarDecl* PVD ) {
+    if (const auto FD = dyn_cast_or_null<FunctionDecl>(PVD->getParentFunctionOrMethod())) {
+      return FD->hasAttr<SkapeReflectedAttr>();
+    }
+    
+    llvm::errs() << "Unable to find function for param " << PVD->getName() << "\n";
+    return false;
   }
   
   void HandleTranslationUnit(ASTContext& context) override {
@@ -85,6 +101,7 @@ public:
     // The advantage of doing this in HandleTranslationUnit() is that all
     // codegen (when using -add-plugin) is completely finished and this can't
     // affect the compiler output.
+    context.getTranslationUnitDecl()
   }
 };
 
