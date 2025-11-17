@@ -9429,8 +9429,99 @@ silence diagnostics with code like:
 }
 
 
-// Skape Engine Attribute docs
+//////////////////////// Skape Engine Attribute docs
+
+def SkapeReflectionOutDocs : Documentation {
+  let Category = DocCatField;
+  let Content = [{
+The ``no_unique_address`` attribute allows tail padding in a non-static data
+member to overlap other members of the enclosing class (and in the special
+case when the type is empty, permits it to fully overlap other members).
+The field is laid out as if a base class were encountered at the corresponding
+point within the class (except that it does not share a vptr with the enclosing
+object).
+
+Example usage:
+
+.. code-block:: c++
+
+  template<typename T, typename Alloc> struct my_vector {
+    T *p;
+    [[no_unique_address]] Alloc alloc;
+    // ...
+  };
+  static_assert(sizeof(my_vector<int, std::allocator<int>>) == sizeof(int*));
+
+``[[no_unique_address]]`` is a standard C++20 attribute. Clang supports its use
+in C++11 onwards.
+
+On MSVC targets, ``[[no_unique_address]]`` is ignored; use
+``[[msvc::no_unique_address]]`` instead. Currently there is no guarantee of ABI
+compatibility or stability with MSVC.
+  }];
+}
+
 def SkapeReflectedDocs : Documentation {
+  let Category = DocCatField;
+  let Content = [{
+The ``no_unique_address`` attribute allows tail padding in a non-static data
+member to overlap other members of the enclosing class (and in the special
+case when the type is empty, permits it to fully overlap other members).
+The field is laid out as if a base class were encountered at the corresponding
+point within the class (except that it does not share a vptr with the enclosing
+object).
+
+Example usage:
+
+.. code-block:: c++
+
+  template<typename T, typename Alloc> struct my_vector {
+    T *p;
+    [[no_unique_address]] Alloc alloc;
+    // ...
+  };
+  static_assert(sizeof(my_vector<int, std::allocator<int>>) == sizeof(int*));
+
+``[[no_unique_address]]`` is a standard C++20 attribute. Clang supports its use
+in C++11 onwards.
+
+On MSVC targets, ``[[no_unique_address]]`` is ignored; use
+``[[msvc::no_unique_address]]`` instead. Currently there is no guarantee of ABI
+compatibility or stability with MSVC.
+  }];
+}
+
+def SkapeReflectAllDocs : Documentation {
+  let Category = DocCatField;
+  let Content = [{
+The ``no_unique_address`` attribute allows tail padding in a non-static data
+member to overlap other members of the enclosing class (and in the special
+case when the type is empty, permits it to fully overlap other members).
+The field is laid out as if a base class were encountered at the corresponding
+point within the class (except that it does not share a vptr with the enclosing
+object).
+
+Example usage:
+
+.. code-block:: c++
+
+  template<typename T, typename Alloc> struct my_vector {
+    T *p;
+    [[no_unique_address]] Alloc alloc;
+    // ...
+  };
+  static_assert(sizeof(my_vector<int, std::allocator<int>>) == sizeof(int*));
+
+``[[no_unique_address]]`` is a standard C++20 attribute. Clang supports its use
+in C++11 onwards.
+
+On MSVC targets, ``[[no_unique_address]]`` is ignored; use
+``[[msvc::no_unique_address]]`` instead. Currently there is no guarantee of ABI
+compatibility or stability with MSVC.
+  }];
+}
+
+def SkapeHideReflectedDocs : Documentation {
   let Category = DocCatField;
   let Content = [{
 The ``no_unique_address`` attribute allows tail padding in a non-static data

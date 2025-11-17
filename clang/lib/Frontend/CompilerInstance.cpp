@@ -1002,6 +1002,8 @@ bool CompilerInstance::InitializeSourceManager(const FrontendInputFile &Input,
   return true;
 }
 
+extern void reflection_pass(CompilerInstance &CI);
+
 // High-Level Operations
 
 bool CompilerInstance::ExecuteAction(FrontendAction &Act) {
@@ -1045,6 +1047,8 @@ bool CompilerInstance::ExecuteAction(FrontendAction &Act) {
   llvm::sort(getCodeGenOpts().TocDataVarsUserSpecified);
   llvm::sort(getCodeGenOpts().NoTocDataVars);
 
+  std::this_thread::sleep_for(std::chrono::seconds(10));
+
   for (const FrontendInputFile &FIF : getFrontendOpts().Inputs) {
     // Reset the ID tables if we are reusing the SourceManager and parsing
     // regular files.
@@ -1054,10 +1058,13 @@ bool CompilerInstance::ExecuteAction(FrontendAction &Act) {
     if (Act.BeginSourceFile(*this, FIF)) {
       if (llvm::Error Err = Act.Execute()) {
         consumeError(std::move(Err)); // FIXME this drops errors on the floor.
-      }
+    }
       Act.EndSourceFile();
     }
   }
+
+  // Skape reflection pass.
+  reflection_pass(*this);
 
   printDiagnosticStats();
 

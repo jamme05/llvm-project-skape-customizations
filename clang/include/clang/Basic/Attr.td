@@ -5227,10 +5227,28 @@ def NonString : InheritableAttr {
 
 // Skape Engine attributes:
 
+def SkapeReflectionOut : InheritableAttr {
+  let Subjects = SubjectList<[Var], ErrorDiag>;
+  let Spellings = [CXX11<"sk", "reflection_info">];
+  let Documentation = [SkapeReflectionOutDocs];
+}
+
 def SkapeReflected : InheritableAttr {
   let Subjects = SubjectList<[Var, Function, Field, Tag], ErrorDiag>;
   let Spellings = [CXX11<"sk", "reflected">];
   let Documentation = [SkapeReflectedDocs];
+}
+
+def SkapeReflectAll : InheritableAttr {
+  let Subjects = SubjectList<[Tag], ErrorDiag>;
+  let Spellings = [CXX11<"sk", "reflect_all">];
+  let Documentation = [SkapeReflectAllDocs];
+}
+
+def SkapeHideReflected : InheritableAttr {
+  let Subjects = SubjectList<[Var, Function, Field, Tag], ErrorDiag>;
+  let Spellings = [CXX11<"sk", "hide">];
+  let Documentation = [SkapeHideReflectedDocs];
 }
 
 def SkapeReflectedDisplayName : InheritableAttr {

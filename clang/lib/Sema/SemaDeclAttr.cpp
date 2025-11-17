@@ -7967,6 +7967,8 @@ ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D, const ParsedAttr &AL,
   case AttributeCommonInfo::AT_SkapeReflectedParamKind:
     handleSkapeReflectedParamKind(S, D, AL);
     break;
+  case AttributeCommonInfo::AT_SkapeReflectionOut:
+    handleSimpleAttribute<SkapeReflectionOutAttr>(S, D, AL);
   }
 }
 
